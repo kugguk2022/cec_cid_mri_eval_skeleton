@@ -1,0 +1,23 @@
+{
+  "modality_map": {
+    "t1": [
+      "t1",
+      "T1",
+      "T1w"
+    ],
+    "t2": [
+      "t2",
+      "T2",
+      "T2w"
+    ],
+    "flair": [
+      "flair",
+      "FLAIR"
+    ],
+    "t1ce": [
+      "t1ce",
+      "t1gd",
+      "T1Gd"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+step,model,B,eps,N,notes
+50,G1_DIFF,50,0.141,38.3,stub
+100,G1_DIFF,100,0.1,46.1,stub
+150,G1_DIFF,150,0.082,52.0,stub
+50,G2_GAN,40,0.17,31.2,stub
+100,G2_GAN,80,0.12,39.8,stub
+150,G2_GAN,120,0.098,44.0,stub
