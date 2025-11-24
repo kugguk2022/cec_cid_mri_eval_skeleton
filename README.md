@@ -67,3 +67,13 @@ python train/evaluate_generators.py   --clb_csv outputs/ixi_clb/clb.csv   --budg
 
 **You control the encoder:** `cec_cid/embedder.py` exposes a single function `embed_volume()` you can replace with your radiology backbone.
 
+##Citation
+If you use this work in your research, please cite:
+
+@software{CEC-CID 2025,
+  title={TheCEC·CIDFrameworkforAdaptiveGenerators
+ andUnboundedSets},
+  author={kugguk2022},
+  year={2025},
+  url={https://github.com/kugguk2022/cec_cid_mri_eval_skeleton}
+}
