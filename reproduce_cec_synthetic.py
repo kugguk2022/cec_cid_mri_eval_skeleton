@@ -4,64 +4,67 @@ from sklearn.datasets import make_swiss_roll
 from scipy.spatial.distance import pdist
 from sklearn.decomposition import PCA
 
-def run_synthetic_reproduction():
-    print("--- CEC-CID REPRODUCTION: SYNTHETIC MANIFOLD ---")
-    
-    # 1. GENERATE GROUND TRUTH (Swiss Roll, d=2)
-    # Embedded in high-dim space (R^100) to test robustness
-    print("1. Generating Swiss Roll in R^100 (True Dim=2)...")
-    n_samples = 2000
-    X_clean, _ = make_swiss_roll(n_samples, noise=0.1)
-    
-    # Embed in noise (R^100)
-    noise_dim = 100
-    Q = np.random.randn(3, noise_dim) # Random projection matrix
-    X_highdim = X_clean @ Q 
-    # Add ambient noise
-    X_highdim += 0.05 * np.random.randn(n_samples, noise_dim)
-    
-    # 2. GENERATOR PIPELINE (The "Budget" Process)
-    # We simulate a generator improving by adding PCA components
-    print("2. Simulating Generative Budget (PCA components)...")
-    
-    pca = PCA(n_components=10) # Budget = 10 components
-    X_latent = pca.fit_transform(X_highdim)
-    
-    # L2 Normalize (Geometric Hygiene)
-    norms = np.linalg.norm(X_latent, axis=1, keepdims=True)
-    X_embedded = X_latent / (norms + 1e-9)
-    
-    # 3. MEASURE DIMENSION (The CEC-CID Signature)
-    print("3. Calculating Correlation Sum C(eps)...")
-    dists = pdist(X_embedded, metric='euclidean')
-    
+def estimate_slope(X, label):
+    # Helper to calculate d
+    dists = pdist(X, metric='euclidean')
     eps_list = np.logspace(np.log10(0.05), np.log10(0.5), 10)
-    log_eps = []
-    log_C = []
-    
+    log_eps, log_C = [], []
     for eps in eps_list:
-        count = np.sum(dists < eps)
-        frac = count / len(dists)
+        frac = np.sum(dists < eps) / len(dists)
         if frac > 0:
             log_eps.append(np.log(eps))
             log_C.append(np.log(frac))
-            print(f"   eps={eps:.3f} -> C(eps)={frac:.4f}")
-
-    # 4. FIT SLOPE
-    slope, intercept = np.polyfit(log_eps, log_C, 1)
-    print(f"\n>>> ESTIMATED DIMENSION d = {slope:.3f} (Expected ~2.0)")
     
-    # 5. PLOT
-    plt.figure(figsize=(6,6))
-    plt.scatter(log_eps, log_C, c='r', label='Observed')
-    plt.plot(log_eps, slope*np.array(log_eps) + intercept, 'k--', label=f'Fit d={slope:.2f}')
-    plt.xlabel('log(epsilon)')
-    plt.ylabel('log(Correlation Sum)')
-    plt.title(f'Synthetic Reproduction (Swiss Roll)\nTrue d=2.0 | Est d={slope:.2f}')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig('synthetic_dimension.png')
-    print("Plot saved to synthetic_dimension.png")
+    slope, _ = np.polyfit(log_eps, log_C, 1)
+    return slope, log_eps, log_C
+
+def run_cross_validation_test():
+    print("\n--- ACID TEST: CROSS-VALIDATION ---")
+    
+    # 1. Generate TWO separate datasets (Same physics, different samples)
+    # Train = 2000 samples, Test = 2000 samples
+    N = 2000
+    noise_dim = 100
+    
+    # Common projection matrix (The "Physics" of the world)
+    Q = np.random.randn(3, noise_dim) 
+    
+    print("1. Generating Train Set (A) and Test Set (B)...")
+    X_A_clean, _ = make_swiss_roll(N, noise=0.1)
+    X_B_clean, _ = make_swiss_roll(N, noise=0.1) # New random samples
+    
+    X_A = X_A_clean @ Q + 0.05 * np.random.randn(N, noise_dim)
+    X_B = X_B_clean @ Q + 0.05 * np.random.randn(N, noise_dim)
+    
+    # 2. FIT PCA ON A ONLY
+    print("2. Fitting PCA on Set A (Training)...")
+    pca = PCA(n_components=10)
+    pca.fit(X_A) # Learn geometry from A
+    
+    # 3. TRANSFORM BOTH
+    print("3. Projecting Set B using Set A's encoder...")
+    # L2 Normalize both
+    X_A_emb = pca.transform(X_A)
+    X_A_emb /= np.linalg.norm(X_A_emb, axis=1, keepdims=True)
+    
+    X_B_emb = pca.transform(X_B) # B was never seen during fit!
+    X_B_emb /= np.linalg.norm(X_B_emb, axis=1, keepdims=True)
+    
+    # 4. COMPARE DIMENSIONS
+    d_A, x_A, y_A = estimate_slope(X_A_emb, "Train (A)")
+    d_B, x_B, y_B = estimate_slope(X_B_emb, "Test (B)")
+    
+    print(f"\nRESULTS:")
+    print(f"Dimension of Train Set A: {d_A:.3f}")
+    print(f"Dimension of Test Set B:  {d_B:.3f}")
+    
+    diff = abs(d_A - d_B)
+    if diff < 0.1:
+        print(f">>> PASS. Difference {diff:.3f} is within tolerance.")
+        print("    The geometry generalizes. It is NOT overfitting.")
+    else:
+        print(f">>> FAIL. Difference {diff:.3f} indicates overfitting.")
 
 if __name__ == "__main__":
-    run_synthetic_reproduction()
+    # run_synthetic_reproduction() # From previous step
+    run_cross_validation_test()
