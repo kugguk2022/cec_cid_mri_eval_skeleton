@@ -1,6 +1,6 @@
 
 # Fit CEC signature (d, beta, c) and export CLB as B >= log N(A, eps)
-import os, argparse, csv, numpy as np, glob
+import os, argparse, csv, numpy as np, glob, sys
 from .embedder import embed_volume
 from .coverage_metrics import k_center_cover_count
 
@@ -22,17 +22,23 @@ def main():
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
+    eps_list = sorted(set([e for e in args.eps_list if e > 0]))
+    if not eps_list:
+        raise ValueError("eps_list must contain at least one positive epsilon")
+    if eps_list != list(args.eps_list):
+        print("Warning: eps_list was unsorted or contained duplicates; using sorted unique values.", file=sys.stderr)
+
     paths = glob.glob(os.path.join(args.bids_dir, "sub-*", "ses-*", "anat", "*.nii*"))
     embs = []
     for p in paths:
         try:
             embs.append(embed_volume(p))
-        except Exception:
-            continue
+        except Exception as exc:
+            print(f"Skipping {p}: {exc}", file=sys.stderr)
     E = np.stack(embs, axis=0) if embs else np.zeros((0, 70), dtype=np.float32)
 
     rows = []
-    for eps in args.eps_list:
+    for eps in eps_list:
         N = k_center_cover_count(E, eps) if len(E) else 0
         rows.append({"eps": eps, "logN": float(np.log(N + 1e-9))})
 
@@ -44,7 +50,7 @@ def main():
 
     d, beta, c = fit_power_loglaw([r["eps"] for r in rows], [r["logN"] for r in rows]) if rows else (0.0,0.0,0.0)
     clb_rows = []
-    lo, hi = min(args.eps_list), max(args.eps_list)
+    lo, hi = min(eps_list), max(eps_list)
     for eps in np.linspace(lo, hi, 20):
         x1 = np.log(1/eps)
         x2 = np.log(np.log(1/eps) + 1e-9)

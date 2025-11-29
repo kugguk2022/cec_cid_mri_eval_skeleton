@@ -1,0 +1,18 @@
+# Data files
+*.nii
+*.npy
+datasets/raw/
+datasets/BIDS_BRATS/
+outputs/brats_*/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+Thumbs.db

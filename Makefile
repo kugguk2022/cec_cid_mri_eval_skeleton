@@ -1,5 +1,5 @@
 
-.PHONY: g1 g2 eval bids clb
+.PHONY: g1 g2 eval bids clb install test setup
 
 g1:
 	python train/g1_diffusion_stub.py
@@ -15,3 +15,12 @@ clb:
 
 eval:
 	python train/evaluate_generators.py --clb_csv outputs/example/clb.csv --budget_csv outputs/example/budget_trace.csv
+
+install:
+	python -m pip install -r requirements.txt
+
+setup: install
+	@echo "Tip: create a venv with 'python -m venv .venv' and activate before \`make setup\`."
+
+test:
+	python -m pytest

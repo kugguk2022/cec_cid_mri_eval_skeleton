@@ -1,79 +1,118 @@
-# CEC–CID MRI Evaluation Skeleton
+# CEC-CID MRI Evaluation Skeleton
 
-Serious, non-toy scaffold to compare two generative models (G1 vs G2) on brain MRI using a **Coverage–Efficiency** view:
+Minimal-yet-serious scaffold to compare two generative models (G1 vs G2) on brain MRI with a **Coverage vs Efficiency** view:
+
 - Fit the **CEC signature** `(d, beta, c)` of real data via approximate covering numbers in an embedding space.
 - Compute the **Capacity Lower Bound (CLB)**: `B >= log N(A, eps)`.
-- Log each model's **budget B**, **quality eps**, and **achieved coverage N(A, eps; G, j)**.
-- Plot `B` vs `log(1/eps)` against CLB to see who hugs the lower bound.
+- Log each model's **budget B**, **quality eps**, and **achieved coverage N(A, eps; G, j)** over training.
+- Plot `B` vs `log(1/eps)` against the CLB to see who hugs the lower bound.
 
-> Note: Auto-downloading many medical datasets requires registration/DUAs. This repo standardizes **ingest → BIDS** and **embedding/coverage** so you can plug any dataset you have legal access to.
+> Many medical datasets require registration/DUAs. This repo standardizes **ingest → BIDS** plus lightweight **embedding/coverage** so you can plug in any dataset you have legal access to.
 
 ## Layout
-```
+
+```text
 cec_cid_mri_eval_skeleton/
 ├─ datasets/
-│  ├─ INGEST.md                     # Where to put raw data & how to ingest
-│  ├─ ingest_templates/             # Templated download/ingest scripts (edit with your creds/paths)
-│  │  ├─ ingest_brats_template.sh
-│  │  ├─ ingest_ixi_template.py
-│  │  ├─ ingest_isles2022_template.py
-│  │  ├─ ingest_msd_task01_template.sh
-│  │  ├─ ingest_fastmri_template.py
-│  │  └─ ingest_meningioma_template.py
-│  └─ raw/                          # Place raw archives or DICOM/NIfTI here (per-dataset subfolders)
+│  ├─ INGEST.md                      # Where to place raw data & how to ingest
+│  ├─ ingest_templates/              # Templated scripts to download/prepare datasets
+│  └─ raw/                           # Place raw archives or DICOM/NIfTI here (per-dataset subfolders)
 ├─ utils/
 │  └─ bids_repack/
-│     ├─ mri_to_bids.py             # Minimal BIDS repacker (NIfTI + JSON → BIDS)
-│     └─ rules.json                 # Simple mapping rules
+│     ├─ mri_to_bids.py              # Minimal BIDS repacker (NIfTI -> BIDS)
+│     └─ rules.json                  # Name-to-modality mapping rules
 ├─ cec_cid/
-│  ├─ embedder.py                   # Lightweight embeddings (no heavy deps) + hooks for custom encoders
-│  ├─ coverage_metrics.py           # k-center covering number, diversity, mode-collapse probes
-│  ├─ clb.py                        # CEC fit & CLB line estimation
-│  ├─ schedules.py                  # Budget schedules (log-boost, plateau, bursts)
-│  └─ logging_harness.py            # Unified logger → CSVs (budget_trace.csv, coverings.csv, clb.csv)
+│  ├─ embedder.py                    # Lightweight embeddings + hooks for custom encoders
+│  ├─ coverage_metrics.py            # k-center covering number and diversity probes
+│  ├─ clb.py                         # CEC fit & CLB line estimation
+│  ├─ schedules.py                   # Budget schedules (log-boost, plateau, bursts)
+│  └─ logging_harness.py             # Unified CSV logger (budget_trace.csv, coverings.csv, clb.csv)
 ├─ train/
-│  ├─ evaluate_generators.py        # Compare G1 vs G2 against CLB (expects per-checkpoint dumps/embeddings)
-│  ├─ g1_diffusion_stub.py          # Budget tracker hooks for diffusion-style training loops
-│  └─ g2_gan_stub.py                # Budget tracker hooks for GAN-style loops
-├─ outputs/
-│  ├─ example/budget_trace.csv
-│  ├─ example/coverings.csv
-│  └─ example/clb.csv
+│  ├─ evaluate_generators.py         # Compare G1 vs G2 against CLB; optional plotting
+│  ├─ g1_diffusion_stub.py           # Budget tracker hooks for diffusion-style training loops
+│  └─ g2_gan_stub.py                 # Budget tracker hooks for GAN-style loops
+├─ outputs/example/                  # Tiny CSV examples
+├─ requirements.txt
 └─ Makefile
 ```
 
+## Setup
+
+```bash
+python -m pip install -r requirements.txt
+# or: python -m venv .venv && .\.venv\Scripts\activate && make setup
+```
+
 ## Quickstart
-1) Put your data under `datasets/raw/<DATASET>/...` (NIfTI or DICOM).  
-2) Run BIDS repack:
-```
-python utils/bids_repack/mri_to_bids.py   --in_dir datasets/raw/IXI --out_dir datasets/BIDS_IXI --dataset_name IXI
-```
-3) Build embeddings & CEC/CLB from a **healthy** corpus (e.g., IXI/HCP subset):
-```
-python cec_cid/clb.py --bids_dir datasets/BIDS_IXI --out_dir outputs/ixi_clb --eps_list 0.05 0.1 0.2
-```
-4) Hook your training loops (`train/g1_diffusion_stub.py`, `train/g2_gan_stub.py`) to log:
+
+1. Put data under `datasets/raw/<DATASET>/...` (NIfTI or DICOM already converted to NIfTI).
+1. Repack to BIDS:
+
+   ```bash
+   python utils/bids_repack/mri_to_bids.py --in_dir datasets/raw/IXI --out_dir datasets/BIDS_IXI --dataset_name IXI --verbose
+   ```
+
+   Flags:
+
+   - `--verbose`: per-file decisions + modality counts.
+   - `--fail_on_unknown`: fail fast if a file modality cannot be inferred.
+
+1. Build embeddings & CEC/CLB from a healthy corpus (e.g., IXI/HCP subset):
+
+   ```bash
+   python cec_cid/clb.py --bids_dir datasets/BIDS_IXI --out_dir outputs/ixi_clb --eps_list 0.05 0.1 0.2
+   ```
+
+1. Hook your training loops (`train/g1_diffusion_stub.py`, `train/g2_gan_stub.py`) to log:
+
    - `budget_trace.csv`: step, model, B, eps, N, notes
    - `coverings.csv`: eps, logN, etc.
-5) Compare:
-```
-python train/evaluate_generators.py   --clb_csv outputs/ixi_clb/clb.csv   --budget_csv outputs/example/budget_trace.csv
-```
+
+1. Compare (and optionally plot):
+
+   ```bash
+   python train/evaluate_generators.py --clb_csv outputs/ixi_clb/clb.csv --budget_csv outputs/example/budget_trace.csv --out_plot outputs/example/gap.png
+   ```
+
+## Make targets
+
+- `make install` — install `requirements.txt`.
+- `make setup` — same as install; handy after creating a venv.
+- `make bids` — run the IXI BIDS repack example.
+- `make clb` — fit CEC/CLB on the IXI BIDS example path.
+- `make g1` / `make g2` — run stub trainers (emit budget traces).
+- `make eval` — compare traces to example CLB.
+- `make test` — run unit tests.
 
 ## Dependencies
+
 - Python 3.9+
-- `numpy`, `nibabel` (for NIfTI), optionally `pydicom` if you ingest DICOM
-- No heavy DL libs required for core metrics; you can later plug MONAI/torch encoders.
+- `numpy`, `nibabel` (for NIfTI)
+- Optional: `pydicom` for DICOM ingest, `matplotlib` for plotting, `pytest` for tests; you can later plug MONAI/torch encoders if desired.
 
-**You control the encoder:** `cec_cid/embedder.py` exposes a single function `embed_volume()` you can replace with your radiology backbone.
+**Customize embeddings:** `cec_cid/embedder.py` exposes `embed_volume()`; plug in your backbone or featureizer while keeping the rest of the pipeline unchanged.
 
-##Citation
-If you use this work in your research, please cite:
+## BRATS slice embeddings
+
+Generate slice-level embeddings from the provided BRATS BIDS layout:
+
+```bash
+python process_brats.py --bids_dir datasets/BIDS_BRATS --out_dir outputs/brats_embeddings --modality T1w --stride 2 --device auto
 ```
-@software{
-CEC-CID 2025, title={TheCEC·CIDFramework for Adaptive Generators and Unbounded Sets},
-author={kugguk2022},
-year={2025},
-url={https://github.com/kugguk2022/cec_cid_mri_eval_skeleton}
+
+- Accepts `.nii` or `.nii.gz` files and can match `T1w`, `FLAIR`, or `T2` (set `--modality` accordingly).
+- Override `--slice_axis`, `--stride`, `--batch_size`, or `--num_workers` for performance/compatibility.
+- Use `--device cpu` if your GPU is newer than what your PyTorch build supports (e.g., RTX with compute capability > sm_90).
+
+## Citation
+
+If you use this work in your research, please cite:
+
+```bibtex
+@software{CEC-CID 2025,
+   title        = {The CEC·CID Framework for Adaptive Generators and Unbounded Sets},
+   author       = {kugguk2022},
+   year         = {2025},
+   url          = {https://github.com/kugguk2022/cec_cid_mri_eval_skeleton}
 }
 ```

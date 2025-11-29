@@ -1,0 +1,9 @@
+numpy>=1.24
+torch>=2.1
+torchvision>=0.16  # optional; fallback CNN used if unavailable
+nibabel>=5.1
+pandas>=2.1
+tqdm>=4.66
+pydicom>=2.4  # optional, only needed if you ingest DICOM
+matplotlib>=3.8  # optional, used for plotting CLI output
+pytest>=7.4
