@@ -3,7 +3,10 @@
 *.npy
 datasets/raw/
 datasets/BIDS_BRATS/
-outputs/brats_*/
+outputs/brats_*/*.npy
+outputs/brats_*/*.csv
+outputs/brats_*/metadata.csv
+outputs/brats_*/embeddings.npy
 
 # Python cache
 __pycache__/
