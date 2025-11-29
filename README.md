@@ -69,11 +69,13 @@ python train/evaluate_generators.py   --clb_csv outputs/ixi_clb/clb.csv   --budg
 
 ##Citation
 If you use this work in your research, please cite:
-
-@software{CEC-CID 2025,
-  title={TheCEC·CIDFrameworkforAdaptiveGenerators
- andUnboundedSets},
-  author={kugguk2022},
-  year={2025},
-  url={https://github.com/kugguk2022/cec_cid_mri_eval_skeleton}
+```
+@software{
+CEC-CID 2025,
+ title={TheCEC·CIDFrameworkforAdaptiveGenerators
+andUnboundedSets},
+author={kugguk2022},
+year={2025},
+url={https://github.com/kugguk2022/cec_cid_mri_eval_skeleton}
 }
+```
