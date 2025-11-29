@@ -1,0 +1,13 @@
+{
+  "Name": "BRATS",
+  "BIDSVersion": "1.8.0",
+  "DatasetType": "raw",
+  "GeneratedBy": [
+    {
+      "Name": "mri_to_bids.py",
+      "Version": "minimal",
+      "CodeURL": ""
+    }
+  ],
+  "Date": "2025-11-27T22:40:49.615452Z"
+}
